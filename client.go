@@ -88,13 +88,13 @@ func (client *Client) Msg(text string) {
 
 // Send message from server. It has ": servername" prefix.
 func (client *Client) Reply(text string) {
-	client.Msg(":" + client.hostname + " " + text)
+	client.Msg(text)
 }
 
 // Send server message, concatenating all provided text parts and
 // prefix the last one with ":".
-func (client *Client) ReplyParts(code string, text ...string) {
-	parts := []string{code}
+func (client *Client) ReplyParts(text ...string) {
+	parts := []string{""}
 	for _, t := range text {
 		parts = append(parts, t)
 	}
@@ -104,20 +104,20 @@ func (client *Client) ReplyParts(code string, text ...string) {
 
 // Send nicknamed server message. After servername it always has target
 // client's nickname. The last part is prefixed with ":".
-func (client *Client) ReplyNicknamed(code string, text ...string) {
-	client.ReplyParts(code, append([]string{client.nickname}, text...)...)
+func (client *Client) ReplyNicknamed(text ...string) {
+	client.ReplyParts(append([]string{"@"+client.nickname}, text...)...)
 }
 
 // Reply "461 not enough parameters" error for given command.
 func (client *Client) ReplyNotEnoughParameters(command string) {
-	client.ReplyNicknamed("461", command, "Not enough parameters")
+	client.ReplyNicknamed(command, "Not enough parameters")
 }
 
 // Reply "403 no such channel" error for specified channel.
 func (client *Client) ReplyNoChannel(channel string) {
-	client.ReplyNicknamed("403", channel, "No such channel")
+	client.ReplyNicknamed(channel, "No such channel")
 }
 
 func (client *Client) ReplyNoNickChan(channel string) {
-	client.ReplyNicknamed("401", channel, "No such nick/channel")
+	client.ReplyNicknamed(channel, "No such nick/channel")
 }
