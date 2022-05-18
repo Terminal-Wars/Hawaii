@@ -386,12 +386,12 @@ func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 				client.Reply(fmt.Sprintf("PONG %s :%s", daemon.hostname, cols[1]))
 			case "NOTICE", "PRIVMSG":
 				if len(cols) == 1 {
-					client.ReplyNicknamed("No recipient given ("+command+")")
+					client.ReplyNicknamed("411", "No recipient given ("+command+")")
 					continue
 				}
 				cols = strings.SplitN(cols[1], " ", 2)
 				if len(cols) == 1 {
-					client.ReplyNicknamed("No text to send")
+					client.ReplyNicknamed("412", "No text to send")
 					continue
 				}
 				msg := ""
@@ -406,9 +406,11 @@ func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 				if msg != "" {
 					continue
 				}
+				target = strings.ToUpper(target)
 				r, found := daemon.rooms[target]
 				if !found {
-					go client.ReplyNoNickChan(target)
+					client.ReplyNoNickChan(target)
+					return
 				}
 				daemon.room_sinks[r] <- ClientEvent{client, EVENT_MSG, command + " " + strings.TrimLeft(cols[1], ":")}
 			case "TOPIC":
@@ -450,7 +452,17 @@ func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 				nicknames := strings.Split(cols[len(cols)-1], ",")
 				go daemon.SendWhois(client, nicknames)
 			default:
-				client.ReplyNicknamed(command, "Unknown command")
+				if(client.inRoom != "") {
+					target := strings.ToLower(client.inRoom)
+					fmt.Println(target)
+					r, found := daemon.rooms[target]
+					fmt.Println(found)
+					if !found {continue}
+					daemon.room_sinks[r] <- ClientEvent{client, EVENT_MSG, command + " " + strings.TrimLeft(cols[1], ":")}
+				} else {
+					client.ReplyNicknamed(command, "Unknown command")
+				}
+				
 			}
 		}
 	}
