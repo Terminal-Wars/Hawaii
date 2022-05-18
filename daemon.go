@@ -267,7 +267,7 @@ func (daemon *Daemon) HandlerJoin(client *Client, cmd string) {
 			room_new.key = key
 			room_new.StateSave()
 		}
-		client.inRoom = cmd
+		client.inRoom = strings.ToUpper(cmd)
 		room_sink <- ClientEvent{client, EVENT_NEW, ""}
 	}
 }
@@ -453,10 +453,8 @@ func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 				go daemon.SendWhois(client, nicknames)
 			default:
 				if(client.inRoom != "") {
-					target := strings.ToLower(client.inRoom)
-					fmt.Println(target)
+					target := strings.ToUpper(client.inRoom)
 					r, found := daemon.rooms[target]
-					fmt.Println(found)
 					if !found {continue}
 					daemon.room_sinks[r] <- ClientEvent{client, EVENT_MSG, command + " " + strings.TrimLeft(cols[1], ":")}
 				} else {
