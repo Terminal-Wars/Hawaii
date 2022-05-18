@@ -1,7 +1,8 @@
 /*
 goircd -- minimalistic simple Internet Relay Chat (IRC) server
-Copyright (C) 2014 Sergey Matveev <stargrave@stargrave.org>
-
+Copyright (C) 2014 	Sergey Matveev <stargrave@stargrave.org>
+Copyright (C) 2022-	Terminal Wars Contributors
+   
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
