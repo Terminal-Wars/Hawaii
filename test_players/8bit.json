@@ -1,0 +1,122 @@
+{
+	"character": "8-BIT",
+	"aggressive": "true",
+	"hp": "20",
+	"info": {
+		"diceType": "20",
+		"diceAmount": "1",
+		"diceModAttack": "0",
+		"diceModDefense": "0",
+		"bio": "8-BIT is a loaded arcade machine, both in the lethal sense, and the literal sense. He's heavy, and moves slow. Because of this, 8-BIT rolls with a -5 for his attack rolls."
+	},
+	"passives": [
+		{
+			"name": "arcademachine",
+			"prettyname": "Arcade Machine",
+			"bio": "Roll with a -5 for his attack rolls.",
+			"on_activate": [
+				{
+					"0": ["sub","{me}","diceModAttack",5]
+				}
+			]
+		}
+	],
+	"actives": [
+		{
+			"name": "blaster",
+			"prettyname": "Blaster Beams",
+			"bio": "Shoots a burst of laser beams",
+			"instruction": "Roll a non-damage dealing d20+2. If the d20 connects, roll a 5d10; the difference between your d20 roll and the opponent's defense roll against it is used as a negative modifier to the 5d10's total, with the addition of a 5. The opponent rolls normally to defend the 5d10.",
+			"cooldown": "2",
+			"self": "false",
+			"on_activate": [
+				{
+					"0": ["roll","1","20","2",
+					[{
+						"0": ["roll", "5","10","{myRoll}-{enemyRoll}-5",[{
+							"0": ["attack","{opponent}","{myRoll}-{enemyRoll}"]
+							}]
+							]
+					}],
+					[]
+					]
+				}
+			]
+		},
+		{
+			"name": "damageboost",
+			"prettyname": "Damage Boost",
+			"bio": "After dealing 5 damage, drop a trackball booster on the floor, that gives {tense:you} andcallies' attacks 1 additional damage. The booster has 3HP and has a base defense roll of 5.",
+			"cooldown": "5",
+			"self": "true",
+			"on_activate": [
+			{
+				"0": ["attack","opponent","5"],
+				"1": ["bot", [{
+					"name": "",
+					"character": "TrackballBooster", 
+					"info": {
+						"aggressive": "true",
+						"hp": "3",
+						"diceType": "-1",
+						"diceValue": "5"
+					},
+					"passives": [
+						{
+							"name": "damageboost",
+							"prettyname": "Damage Boost",
+							"on_activate": {
+								"0": ["add","{team}","skip","1"]
+							},
+							"on_deactivate": { 
+								"0": ["sub","{team}","skip","1"]
+							}
+						}
+					],
+					"optional_passives": [
+						{
+							"name": "pluggedin",
+							"pretty_name": "Plugged In",
+							"bio": "As long as Damage Booster is still alive, 8-BIT loses the Arcade Machine passive.",
+							"on_activate": {
+								"0": ["add","{owner}","diceModAttack","5"]
+							},
+							"on_deactivate": {
+								"0": ["sub", "{owner}","diceModAttack","5"]
+							}
+						},
+						{
+							"pretty_name": "booster",
+							"name": "Boosted Booster",
+							"bio": "The attack boost is increased by 1 extra additional damage for {tense:you} & {tense:your} allies.",
+							"repeat": "damageboost" 
+						}
+					]
+				}]]
+			}
+			]
+		},
+		{
+			"group": "cheatcart", 
+			"prettyname": "Cheat Cartridge",
+			"cooldown": "4",
+			"limit": "3",
+			"self": "false",
+			"bio": "If Damage Booster is still active, you can use this on the opponent's turn to dodge their attack and make the booster take the damage or take the damage for the booster (with the booster's base defense). The booster will not receive double damage from tanking for 8-BIT. This can only be used three times.",
+			"attacks": [
+				{
+					"name":"dodge",
+					"on_activate": {
+						"0": ["move_attack","{sender}","TrackballBooster"]
+					}
+				},
+				{
+					"name":"defend",
+					"on_activate": {
+						"1": ["move_attack","TrackballBooster","{sender}"]
+					}
+				}
+			]
+		}
+	]
+}
