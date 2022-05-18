@@ -102,7 +102,8 @@
 			"cooldown": "4",
 			"limit": "3",
 			"self": "false",
-			"bio": "If Damage Booster is still active, you can use this on the opponent's turn to dodge their attack and make the booster take the damage or take the damage for the booster (with the booster's base defense). The booster will not receive double damage from tanking for 8-BIT. This can only be used three times.",
+			"bio": "If Damage Booster is still active, you can use this on these opponent's turn to dodge their attack and make the booster take the damage or take the damage for the booster (with the booster's base defense). The booster will not receive double damage from tanking for 8-BIT. This can only be used three times.",
+			"prerequisite": ["passive_is_active", "booster"],
 			"attacks": [
 				{
 					"name":"dodge",
