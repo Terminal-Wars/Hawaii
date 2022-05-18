@@ -90,15 +90,15 @@ func (room *Room) Processor(events <-chan ClientEvent) {
 				log.Println(client, "joined", room.name)
 			}
 			room.SendTopic(client)
-			room.Broadcast(fmt.Sprintf(":%s JOIN %s", client, room.name))
+			room.Broadcast(fmt.Sprintf("%s joined", client.nickname))
 			room.log_sink <- LogEvent{room.name, client.nickname, "joined", true}
 			nicknames := []string{}
 			for member := range room.members {
 				nicknames = append(nicknames, member.nickname)
 			}
 			sort.Strings(nicknames)
-			client.ReplyNicknamed("=", room.name, strings.Join(nicknames, " "))
-			client.ReplyNicknamed(room.name, "End of NAMES list")
+			client.Reply("Currently in this room:\n "+strings.Join(nicknames, " "))
+			//client.ReplyNicknamed(room.name, "End of NAMES list")
 		case EVENT_DEL:
 			if _, subscribed := room.members[client]; !subscribed {
 				client.ReplyNicknamed(room.name, "You are not on that channel")
@@ -118,7 +118,7 @@ func (room *Room) Processor(events <-chan ClientEvent) {
 				continue
 			}
 			room.topic = strings.TrimLeft(event.text, ":")
-			msg := fmt.Sprintf(":%s TOPIC %s :%s", client, room.name, room.topic)
+			msg := fmt.Sprintf("%s's topic:\n%s", client, room.name, room.topic)
 			go room.Broadcast(msg)
 			room.log_sink <- LogEvent{room.name, client.nickname, "set topic to " + room.topic, true}
 			room.StateSave()
@@ -166,7 +166,7 @@ func (room *Room) Processor(events <-chan ClientEvent) {
 			room.StateSave()
 		case EVENT_MSG:
 			sep := strings.Index(event.text, " ")
-			room.Broadcast(fmt.Sprintf(":%s %s %s :%s", client, event.text[:sep], room.name, event.text[sep+1:]), client)
+			room.Broadcast(event.text, client)
 			room.log_sink <- LogEvent{room.name, client.nickname, event.text[sep+1:], false}
 		}
 	}

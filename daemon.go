@@ -154,15 +154,15 @@ func (daemon *Daemon) ClientRegister(client *Client, command string, cols []stri
 	switch command {
 	case "NICK":
 		if len(cols) == 1 || len(cols[1]) < 1 {
-			client.ReplyParts("431", "No nickname given")
+			client.ReplyParts("No nickname given")
 			return
 		}
 		nickname := cols[1]
 		// something, somewhere, puts a colon before registered names. remove that.
 		nickname = strings.Replace(nickname,":","",1)
-		for client := range daemon.clients {
-			if client.nickname == nickname {
-				client.ReplyParts("433", "*", nickname, "Nickname is already in use")
+		for client_ := range daemon.clients {
+			if client_.nickname == nickname {
+				client.ReplyParts("*", nickname, "Nickname is already in use")
 				return
 			}
 		}
@@ -173,7 +173,7 @@ func (daemon *Daemon) ClientRegister(client *Client, command string, cols []stri
 			}
 		}
 		if len(found) >= 1 {
-			client.ReplyParts("432", "*", cols[1], "Erroneous nickname; contains "+found)
+			client.ReplyParts("*", cols[1], "Erroneous nickname; contains "+found)
 			return
 		}
 		client.nickname = nickname
@@ -211,6 +211,12 @@ func (daemon *Daemon) RoomRegister(name string) (*Room, chan<- ClientEvent) {
 	daemon.rooms[name] = room_new
 	daemon.room_sinks[room_new] = room_sink
 	go room_new.Processor(room_sink)
+	return room_new, room_sink
+}
+
+func (daemon *Daemon) RoomGet(name string) (*Room, chan<- ClientEvent) {
+	room_new := daemon.rooms[name]
+	room_sink := daemon.room_sinks[room_new]
 	return room_new, room_sink
 }
 
@@ -259,10 +265,13 @@ func (daemon *Daemon) HandlerJoin(client *Client, cmd string) {
 		if denied {
 			client.ReplyNicknamed(room, "Cannot join channel (+k) - bad key")
 		}
-		if denied || joined {
-			continue
+		var room_new *Room
+		var room_sink chan<- ClientEvent 
+		if !(denied || joined) {
+			room_new, room_sink = daemon.RoomRegister(room)
+		} else {
+			room_new, room_sink = daemon.RoomGet(room)
 		}
-		room_new, room_sink := daemon.RoomRegister(room)
 		if key != "" {
 			room_new.key = key
 			room_new.StateSave()
@@ -283,9 +292,12 @@ func (daemon *Daemon) HandlerPart(client *Client, cmd string) {
 	}
 }
 
+func (daemon *Daemon) HandlerMsg(client *Client, cmd string) {
+
+}
+
 func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 	for event := range events {
-
 		// Check for clients aliveness
 		now := time.Now()
 		if daemon.last_aliveness_check.Add(ALIVENESS_CHECK).Before(now) {
@@ -309,6 +321,10 @@ func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 		}
 
 		client := event.client
+		// placeholders
+		replacer := strings.NewReplacer(
+			"%%ROOM%%", client.inRoom,
+		)
 		switch event.event_type {
 		case EVENT_NEW:
 			daemon.clients[client] = true
@@ -318,7 +334,13 @@ func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 				room_sink <- event
 			}
 		case EVENT_MSG:
-			cols := strings.SplitN(event.text, " ", 2)
+			// Split whatever message we got.
+			cols_ := strings.SplitN(event.text, " ", 2)
+			cols := make([]string,len(cols_))
+			// Replace all the placeholder text in the array with the respecive thing
+			for i, v := range cols_ {
+				cols[i] = replacer.Replace(v) 
+			}
 			command := strings.ToUpper(cols[0])
 			if daemon.Verbose {
 				log.Println(client, "command", command)
@@ -386,33 +408,46 @@ func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 				client.Reply(fmt.Sprintf("PONG %s :%s", daemon.hostname, cols[1]))
 			case "NOTICE", "PRIVMSG":
 				if len(cols) == 1 {
-					client.ReplyNicknamed("411", "No recipient given ("+command+")")
+					client.ReplyNicknamed("No recipient given ("+command+")")
 					continue
 				}
 				cols = strings.SplitN(cols[1], " ", 2)
 				if len(cols) == 1 {
-					client.ReplyNicknamed("412", "No text to send")
+					client.ReplyNicknamed("No text to send")
 					continue
 				}
 				msg := ""
 				target := strings.ToLower(cols[0])
+				sent := false
 				for c := range daemon.clients {
-					if c.nickname == target {
-						msg = fmt.Sprintf(":%s %s %s :%s", client, command, c.nickname, cols[1])
+					if c.nickname == target && c.inRoom == client.inRoom {
+						msg = fmt.Sprintf("%s >> %s: %s", c.nickname, target, cols[1])
 						c.Msg(msg)
 						break
 					}
+					sent = true
 				}
-				if msg != "" {
+				if(!sent) {
+					client.ReplyNicknamed("No recipients found in "+client.inRoom+" with that name.")
+				}
+			case "MSG":
+				if len(cols) == 1 {
+					client.ReplyNicknamed("No channel given (MSG)")
 					continue
 				}
-				target = strings.ToUpper(target)
+				cols = strings.SplitN(cols[1], " ", 2)
+				if len(cols) == 1 {
+					client.ReplyNicknamed("No text to send")
+					continue
+				}
+				target := strings.ToUpper(cols[0])
 				r, found := daemon.rooms[target]
 				if !found {
 					client.ReplyNoNickChan(target)
-					return
+					continue
 				}
-				daemon.room_sinks[r] <- ClientEvent{client, EVENT_MSG, command + " " + strings.TrimLeft(cols[1], ":")}
+				daemon.room_sinks[r] <- ClientEvent{client, EVENT_MSG, "<"+client.nickname+"> "+cols[1]}
+				client.Reply("<"+client.nickname+"> "+cols[1])
 			case "TOPIC":
 				if len(cols) == 1 {
 					client.ReplyNotEnoughParameters("TOPIC")
@@ -452,15 +487,7 @@ func (daemon *Daemon) Processor(events <-chan ClientEvent) {
 				nicknames := strings.Split(cols[len(cols)-1], ",")
 				go daemon.SendWhois(client, nicknames)
 			default:
-				if(client.inRoom != "") {
-					target := strings.ToUpper(client.inRoom)
-					r, found := daemon.rooms[target]
-					if !found {continue}
-					daemon.room_sinks[r] <- ClientEvent{client, EVENT_MSG, command + " " + strings.TrimLeft(cols[1], ":")}
-				} else {
-					client.ReplyNicknamed(command, "Unknown command")
-				}
-				
+				client.ReplyNicknamed(command, "Unknown command")
 			}
 		}
 	}

@@ -106,7 +106,7 @@ func (client *Client) ReplyParts(text ...string) {
 // Send nicknamed server message. After servername it always has target
 // client's nickname. The last part is prefixed with ":".
 func (client *Client) ReplyNicknamed(text ...string) {
-	client.ReplyParts(append([]string{"[@"+client.nickname+"]"}, text...)...)
+	client.ReplyParts(append([]string{"<Server> @"+client.nickname+": "}, text...)...)
 }
 
 // Reply "461 not enough parameters" error for given command.
