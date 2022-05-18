@@ -59,9 +59,9 @@ func NewRoom(hostname, name string, log_sink chan<- LogEvent, state_sink chan<- 
 
 func (room *Room) SendTopic(client *Client) {
 	if room.topic == "" {
-		client.ReplyNicknamed("331", room.name, "No topic is set")
+		client.ReplyNicknamed(room.name, "No topic is set")
 	} else {
-		client.ReplyNicknamed("332", room.name, room.topic)
+		client.ReplyNicknamed(room.name, room.topic)
 	}
 }
 
@@ -97,11 +97,11 @@ func (room *Room) Processor(events <-chan ClientEvent) {
 				nicknames = append(nicknames, member.nickname)
 			}
 			sort.Strings(nicknames)
-			client.ReplyNicknamed("353", "=", room.name, strings.Join(nicknames, " "))
-			client.ReplyNicknamed("366", room.name, "End of NAMES list")
+			client.ReplyNicknamed("=", room.name, strings.Join(nicknames, " "))
+			client.ReplyNicknamed(room.name, "End of NAMES list")
 		case EVENT_DEL:
 			if _, subscribed := room.members[client]; !subscribed {
-				client.ReplyNicknamed("442", room.name, "You are not on that channel")
+				client.ReplyNicknamed(room.name, "You are not on that channel")
 				continue
 			}
 			delete(room.members, client)
@@ -124,9 +124,9 @@ func (room *Room) Processor(events <-chan ClientEvent) {
 			room.StateSave()
 		case EVENT_WHO:
 			for m := range room.members {
-				client.ReplyNicknamed("352", room.name, m.username, m.conn.RemoteAddr().String(), room.hostname, m.nickname, "H", "0 "+m.realname)
+				client.ReplyNicknamed(room.name, m.username, m.conn.RemoteAddr().String(), room.hostname, m.nickname, "H", "0 "+m.realname)
 			}
-			client.ReplyNicknamed("315", room.name, "End of /WHO list")
+			client.ReplyNicknamed(room.name, "End of /WHO list")
 		case EVENT_MODE:
 			if event.text == "" {
 				mode := "+"
@@ -142,7 +142,7 @@ func (room *Room) Processor(events <-chan ClientEvent) {
 					continue
 				}
 			} else {
-				client.ReplyNicknamed("472", event.text, "Unknown MODE flag")
+				client.ReplyNicknamed(event.text, "Unknown MODE flag")
 				continue
 			}
 			var msg string

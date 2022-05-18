@@ -39,6 +39,7 @@ type Client struct {
 	nickname   string
 	username   string
 	realname   string
+	inRoom 	   string
 }
 
 func (client Client) String() string {
@@ -98,14 +99,14 @@ func (client *Client) ReplyParts(text ...string) {
 	for _, t := range text {
 		parts = append(parts, t)
 	}
-	parts[len(parts)-1] = ":" + parts[len(parts)-1]
+	parts[len(parts)-1] = parts[len(parts)-1]
 	client.Reply(strings.Join(parts, " "))
 }
 
 // Send nicknamed server message. After servername it always has target
 // client's nickname. The last part is prefixed with ":".
 func (client *Client) ReplyNicknamed(text ...string) {
-	client.ReplyParts(append([]string{"@"+client.nickname}, text...)...)
+	client.ReplyParts(append([]string{"[@"+client.nickname+"]"}, text...)...)
 }
 
 // Reply "461 not enough parameters" error for given command.
@@ -116,6 +117,11 @@ func (client *Client) ReplyNotEnoughParameters(command string) {
 // Reply "403 no such channel" error for specified channel.
 func (client *Client) ReplyNoChannel(channel string) {
 	client.ReplyNicknamed(channel, "No such channel")
+}
+
+// Reply "already in channel" error for specified channel.
+func (client *Client) ReplyAlreadyInChannel(channel string) {
+	client.ReplyNicknamed(channel, "Already in the channel")
 }
 
 func (client *Client) ReplyNoNickChan(channel string) {

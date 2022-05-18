@@ -140,7 +140,7 @@ func TestClientReplies(t *testing.T) {
 		t.Fatal("did not recieve 200 message", r)
 	}
 
-	client.ReplyNicknamed("200", "foo", "bar")
+	client.ReplyNicknamed("foo", "bar")
 	if r := <-conn.outbound; r != ":foohost 200 мойник foo :bar\r\n" {
 		t.Fatal("did not recieve nicknamed message", r)
 	}
