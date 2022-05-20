@@ -1,5 +1,6 @@
 {
 	"character": "8-BIT",
+	"owner": "*",
 	"aggressive": "true",
 	"hp": "20",
 	"info": {
@@ -16,7 +17,8 @@
 			"bio": "Roll with a -5 for his attack rolls.",
 			"on_activate": [
 				{
-					"0": ["sub","{me}","diceModAttack",5]
+					"command": "subtract",
+					"args": ["diceModAttack","{me}","5"]
 				}
 			]
 		}
@@ -29,19 +31,20 @@
 			"instruction": "Roll a non-damage dealing d20+2. If the d20 connects, roll a 5d10; the difference between your d20 roll and the opponent's defense roll against it is used as a negative modifier to the 5d10's total, with the addition of a 5. The opponent rolls normally to defend the 5d10.",
 			"cooldown": "2",
 			"self": "false",
-			"on_activate": [
-				{
-					"0": ["roll","1","20","2",
-					[{
-						"0": ["roll", "5","10","{myRoll}-{enemyRoll}-5",[{
-							"0": ["attack","{opponent}","{myRoll}-{enemyRoll}"]
-							}]
-							]
-					}],
-					[]
-					]
-				}
-			]
+			"on_activate": {
+				"command": "roll",
+				"args": ["1", "20", "2"],
+				"on_succeed": {
+					"command": "roll",
+					"args": ["5","20","{myRoll}-{enemyRoll}-5"],
+					"on_succeed": {
+						"command": "attack",
+						"args": ["{opponent},{myRoll}-{enemyRoll}"]
+					},
+					"on_fail": "nil"
+				},
+				"on_fail": "nil"
+			}
 		},
 		{
 			"name": "damageboost",
@@ -51,8 +54,12 @@
 			"self": "true",
 			"on_activate": [
 			{
-				"0": ["attack","opponent","5"],
-				"1": ["bot", [{
+				"command": "attack",
+				"args": ["{opponent}","5"]
+			},
+			{
+				"command": "bot", 
+				"info": {
 					"name": "",
 					"character": "TrackballBooster", 
 					"info": {
@@ -66,10 +73,12 @@
 							"name": "damageboost",
 							"prettyname": "Damage Boost",
 							"on_activate": {
-								"0": ["add","{team}","skip","1"]
+								"command": "add",
+								"args": ["attack","{team}","1"]
 							},
 							"on_deactivate": { 
-								"0": ["sub","{team}","skip","1"]
+								"command": "sub",
+								"args": ["attack","{team}","1"]
 							}
 						}
 					],
@@ -79,10 +88,12 @@
 							"pretty_name": "Plugged In",
 							"bio": "As long as Damage Booster is still alive, 8-BIT loses the Arcade Machine passive.",
 							"on_activate": {
-								"0": ["add","{owner}","diceModAttack","5"]
+								"command": "add",
+								"args": ["diceModAttack","{owner}","5"]
 							},
 							"on_deactivate": {
-								"0": ["sub", "{owner}","diceModAttack","5"]
+								"command": "sub",
+								"args": ["diceModAttack","{owner}","5"]
 							}
 						},
 						{
@@ -92,7 +103,7 @@
 							"repeat": "damageboost" 
 						}
 					]
-				}]]
+				}
 			}
 			]
 		},
@@ -103,19 +114,24 @@
 			"limit": "3",
 			"self": "false",
 			"bio": "If Damage Booster is still active, you can use this on these opponent's turn to dodge their attack and make the booster take the damage or take the damage for the booster (with the booster's base defense). The booster will not receive double damage from tanking for 8-BIT. This can only be used three times.",
-			"prerequisite": ["passive_is_active", "booster"],
+			"conditions": {
+				"name": "booster",
+				"meets": "passive_is_active"
+			},
 			"attacks": [
 				{
 					"name":"dodge",
-					"on_activate": {
-						"0": ["move_attack","{sender}","TrackballBooster"]
-					}
+					"on_activate": [{
+						"command": "move_attacks",
+						"args": ["{sender}","TrackballBooster"]
+					}]
 				},
 				{
 					"name":"defend",
-					"on_activate": {
-						"1": ["move_attack","TrackballBooster","{sender}"]
-					}
+					"on_activate": [{
+						"command": "move_attacks",
+						"args": ["TrackballBooster","{sender}"]
+					}]
 				}
 			]
 		}

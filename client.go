@@ -32,15 +32,16 @@ const (
 )
 
 type Client struct {
-	hostname   string
-	conn       net.Conn
-	registered bool
-	ping_sent  bool
-	timestamp  time.Time
-	nickname   string
-	username   string
-	realname   string
-	inRoom 	   string
+	hostname 	string
+	conn 		net.Conn
+	registered	bool
+	ping_sent	bool
+	timestamp	time.Time
+	nickname 	string
+	username	string
+	realname	string
+	inRoom		string
+	Players 	[]*Player
 }
 
 func (client Client) String() string {

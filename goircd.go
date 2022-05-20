@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
+	"fmt"
 	"crypto/tls"
 	"flag"
 	"io/ioutil"
@@ -44,10 +45,12 @@ var (
 )
 
 func Run() {
+	// Create a new client and events for it.
 	var client *Client
 	events := make(chan ClientEvent)
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
+	// Create a new logger
 	log_sink := make(chan LogEvent)
 	if *logdir == "" {
 		// Dummy logger
@@ -64,6 +67,7 @@ func Run() {
 		log.Println(*logdir, "logger initialized")
 	}
 
+	// Create a new daemon to handle stuff
 	state_sink := make(chan StateEvent)
 	daemon := NewDaemon(*hostname, *motd, log_sink, state_sink)
 	daemon.Verbose = *verbose
@@ -100,6 +104,14 @@ func Run() {
 		log.Println(*statedir, "statekeeper initialized")
 	}
 
+	// (delete later, maybe) Specify some default characters that players can control
+	err := LoadPlayer("./test_players/8bit.json","8-BIT")
+	if(err != nil) {
+		log.Println("\nCouldn't load the test player: \n"+err.Error())
+	}
+	fmt.Println(recognizedPlayers)
+
+	// Beginning listening on a port
 	var listener net.Listener
 	if *ssl {
 		cert, err := tls.LoadX509KeyPair(*sslCert, *sslKey)
